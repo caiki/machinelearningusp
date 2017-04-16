@@ -23,21 +23,21 @@ def config_ax(ax, W, H):
 
 def draw_img(img):
     W, H = img.shape
-    
+
     if W <= 20:
         ax = plt.gca()
         config_ax(ax, W, H)
         ax.imshow(img, cmap="binary", interpolation='none', extent= [0, W, 0, H])
         plt.show()
         return
-    
+
     # desenha imagens maiores plotando sem o grid
     plt.imshow(img, cmap='binary', interpolation='none')
     plt.show()
-    
+
 def draw_img_pair(img1, img2, figsz=(10.4, 4.8) ):
     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=figsz)
-    
+
     W1, H1 = img1.shape
     W2, H2 = img2.shape
     if W1 <= 20 and W2 <= 20:
@@ -77,7 +77,7 @@ def se_disk(r=1):
     y = np.transpose(x)
     be = np.sqrt(x*x + y*y)<=(r+0.5)
     return be >= 1
-    
+
 def se_cross(r=1):
     cross = np.array([[0,1,0],[1,1,1],[0,1,0]])
     if r > 1:
@@ -91,7 +91,7 @@ def se_cross(r=1):
                 se[indices[i]+center[0], indices[j]+center[1]] = cross[i,j]
 
         return dilation(se, cross, r-1)
-    
+
     return cross
 
 def se_box(r=1):

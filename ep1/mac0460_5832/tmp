@@ -1,3 +1,0 @@
-return {x: max(set(freqs[x]), key=freqs[x].count)
-        for x in freqs}
-        
