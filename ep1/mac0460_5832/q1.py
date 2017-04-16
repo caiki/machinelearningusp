@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+
 """
-Universidade de São Paulo
+University of São Paulo
 Mathematics and Statistics Institute
 Course: MAC0460_5832 - Machine Learning - 2017/1
+
 Student: Juliana Cavalcanti Correa
 Assignment: EP1, question 1
-Goal: Design a 1x3 W-operator by learning from source and target image
+Goal: Design a 1x3 W-operator by learning from a binary image
 """
 
 import numpy as np
@@ -16,8 +18,8 @@ def estimate_pattern_results(src, target):
     Slides the window W through the src image and counts the number of times each
     1x3 pattern shows up with the corresponding value (True or False) for the
     center element in the target image
-    Returns a frequency table which serves as an estimator of
-    P(pattern,0) and P(pattern,1)
+    Returns a frequency table which serves as an estimator for
+    P(X | pattern) where X in (0,1)
     """
 
     freqtable = {}

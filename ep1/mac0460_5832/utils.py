@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""
+University of São Paulo
+Mathematics and Statistics Institute
+Course: MAC0460_5832 - Machine Learning - 2017/1
+
+Code provided by the TA with the ep notebook for reading and drawing binary
+images as well as wrappers for scipy's mathematical morphology functions
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
