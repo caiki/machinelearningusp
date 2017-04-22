@@ -21,6 +21,13 @@ def read_img(filename):
         return img
     return img > 127
 
+def read_img_v2(filepath):
+    img = PIL.Image.open(filepath)
+    w = img.size[1]
+    h = img.size[0]
+    return np.asarray(PIL.Image.open(filepath).getdata()).reshape(w, h) >  127
+
+
 def config_ax(ax, W, H):
     ax.set_xlim(0,W)
     ax.set_ylim(0,H)
@@ -45,7 +52,7 @@ def draw_img(img):
     plt.imshow(img, cmap='binary', interpolation='none')
     plt.show()
 
-def draw_img_pair(img1, img2, figsz=(10.4, 4.8) ):
+def draw_img_pair(img1, img2, figsz=(20.8, 9.6) ):
     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=figsz)
 
     W1, H1 = img1.shape
