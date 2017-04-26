@@ -11,13 +11,9 @@ Assignment: EP1 - W-operators design
 
 def pattern_hash(pattern):
     """
-    Receives a m x n numpy array and converts it to a 1-dim tuple (hashable)
+    Receives n-dim numpy array and converts it to a 1-dim tuple (hashable)
     """
-    if len(pattern.shape) == 1:  #TODO look for numpy way to do this
-        l = pattern.shape[0]
-    else:
-        l = pattern.shape[0] * pattern.shape[1]
-    return tuple(pattern.reshape(l))
+    return tuple(pattern.flatten())
 
 
 def add_to_freqtable(input, result, freqtable):
