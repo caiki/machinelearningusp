@@ -11,46 +11,26 @@ Goal: Design a 1x3 W-operator by learning from a binary image
 """
 
 import numpy as np
+from ep1 import *
 
 
 def estimate_pattern_results(src, target):
     """
     Slides the window W through the src image and counts the number of times each
-    1x3 pattern shows up with the corresponding value (True or False) for the
-    center element in the target image
+    1x3 pattern shows up and corresponds to a center element in the target image
+    of value True or False
     Returns a frequency table which serves as an estimator for
-    P(X | pattern) where X in (0,1)
+    P(X | pattern) where X in (True,False)
     """
 
     freqtable = {}
 
     for i in range(src.shape[0]):
         for j in range(1, src.shape[1]-1): # clips the borders
-
-            pattern = tuple(src[i, j-1:j+2]) # lists are not hashable, tuples are
+            pattern = src[i, j-1:j+2]
             result = target[i, j]
-
-            if not pattern in freqtable:
-                freqtable[pattern] = { True : 0, False : 0 }
-            freqtable[pattern][result] += 1
-
+            add_to_freqtable(pattern, result, freqtable)
     return freqtable
-
-
-def optimal_decision(pattern, freqtable):
-    """
-    Returns the value that minimizes MAE for this pattern considering the
-    observations given by the frequency table
-    """
-    return freqtable[pattern][True] > freqtable[pattern][False]
-
-
-def generate_operator(freqtable):
-    """
-    Returns the operator (list of patterns for which the output is estimated to
-    be True)
-    """
-    return filter(lambda x: optimal_decision(x, freqtable), freqtable.keys())
 
 
 def apply_operator(src, operator):
@@ -60,8 +40,7 @@ def apply_operator(src, operator):
     target = np.zeros_like(src, dtype=bool)
     for i in range(src.shape[0]):
         for j in range(1, src.shape[1]-1):
-            pattern = tuple(src[i, j-1:j+2])
+            pattern = pattern_hash(src[i, j-1:j+2])
             if pattern in operator:
                 target[i,j] = True
-
     return target

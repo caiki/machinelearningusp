@@ -11,7 +11,8 @@ Goal: Design a 3x3 W-operator for border detection by learning from a binary ima
 """
 
 import numpy as np
-from q1 import optimal_decision
+from ep1 import *
+
 
 
 def estimate_pattern_results(trainingdata):
@@ -35,26 +36,11 @@ def estimate_pattern_results(trainingdata):
 
         for i in range(1, src.shape[0]-1):
             for j in range(1, src.shape[1]-1):
-
-                p = src[i-1:i+2, j-1:j+2].reshape(9)
-                pattern = tuple(p)
+                pattern = src[i-1:i+2, j-1:j+2]
                 result = target[i, j]
-
-                if not pattern in freqtable:
-                    freqtable[pattern] = { True : 0, False : 0 }
-                freqtable[pattern][result] += 1
+                add_to_freqtable(pattern, result, freqtable)
 
     return freqtable
-
-
-def generate_operator(freqtable):
-    """
-    Returns the operator (list of patterns for which the output is estimated to
-    be True)
-    """
-    return filter(lambda x: optimal_decision(x, freqtable), freqtable.keys())
-    #return map(lambda x: np.array(x).reshape(3,3), f)
-
 
 
 def apply_operator(src, operator):
@@ -64,8 +50,7 @@ def apply_operator(src, operator):
     target = np.zeros_like(src, dtype=bool)
     for i in range(1, src.shape[0]-1):
         for j in range(1, src.shape[1]-1):
-            pattern = tuple(src[i-1:i+2, j-1:j+2].reshape(9))
-            #pattern = src[i-1:i+2, j-1:j+2]
+            pattern = pattern_hash(src[i-1:i+2, j-1:j+2])
             if pattern in operator:
                 target[i,j] = True
 
