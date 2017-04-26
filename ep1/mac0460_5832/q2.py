@@ -14,8 +14,7 @@ import numpy as np
 from ep1 import *
 
 
-
-def estimate_pattern_results(trainingdata):
+def build_pattern_freqs(trainingdata):
     """
     For each image, slides the window W through the src image and counts the
     number of times each 3x3 pattern shows up with the corresponding value

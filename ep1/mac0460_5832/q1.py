@@ -14,7 +14,7 @@ import numpy as np
 from ep1 import *
 
 
-def estimate_pattern_results(src, target):
+def build_pattern_freqs(trainingdata):
     """
     Slides the window W through the src image and counts the number of times each
     1x3 pattern shows up and corresponds to a center element in the target image
@@ -25,12 +25,16 @@ def estimate_pattern_results(src, target):
 
     freqtable = {}
 
-    for i in range(src.shape[0]):
-        for j in range(1, src.shape[1]-1): # clips the borders
-            pattern = src[i, j-1:j+2]
-            result = target[i, j]
-            add_to_freqtable(pattern, result, freqtable)
-    return freqtable
+    for imgpair in trainingdata:
+        src = imgpair[0]
+        target = imgpair[1]
+
+        for i in range(src.shape[0]):
+            for j in range(1, src.shape[1]-1): # clips the borders
+                pattern = src[i, j-1:j+2]
+                result = target[i, j]
+                add_to_freqtable(pattern, result, freqtable)
+        return freqtable
 
 
 def apply_operator(src, operator):
