@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+unit tests for ep1.py
+"""
 
 import numpy as np
 import unittest
@@ -48,7 +51,6 @@ class TestEP(unittest.TestCase):
                             [False, True, False],
                             [False, True, False]])
         self.assertEquals(expected.all(), result.all())
-
 
     def test_pattern_hash(self):
         result = pattern_hash(np.ones((3,3), dtype=bool))
