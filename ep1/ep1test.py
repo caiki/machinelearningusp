@@ -57,6 +57,30 @@ class TestEP(unittest.TestCase):
         expected = tuple([True for i in range(9)])
         self.assertEquals(expected, result)
 
+    def test_build_freqtable(self):
+        trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
+        freqtable = build_pattern_freqs(trainingdata, self.mask_horizontal)
+        v111 = (True,True,True)
+        v010 = (False,True,False)
+        v000 = (False,False,False)
+        self.assertTrue(freqtable[v111][True] > 0)
+        self.assertEquals(freqtable[v111][False], 0)
+        self.assertTrue(freqtable[v010][True] > 0)
+        self.assertEquals(freqtable[v010][False], 0)
+        self.assertTrue(freqtable[v000][False] > 0)
+        self.assertEquals(freqtable[v000][True], 0)
+
+    def test_generate_operator(self):
+        trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
+        freqtable = build_pattern_freqs(trainingdata, self.mask_horizontal)
+        v111 = (True,True,True)
+        v010 = (False,True,False)
+        v000 = (False,False,False)
+        op = generate_operator(freqtable)
+        self.assertTrue (v111 in op)
+        self.assertTrue (v010 in op)
+        self.assertFalse (v000 in op)
+
 
 if __name__ == '__main__':
     unittest.main()

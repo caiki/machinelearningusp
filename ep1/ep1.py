@@ -46,11 +46,11 @@ def add_to_freqtable(pattern, result, freqtable):
 
 def build_pattern_freqs(trainingdata, se_mask):
     """
-    Slides the window W through the src image and counts the number of times each
-    1x3 pattern shows up and corresponds to a center element in the target image
-    of value True or False
-    Returns a frequency table which serves as an estimator for
-    P(X | pattern) where X in (True,False)
+    Slides a window with the structuring element as a mask through the src image
+    and counts the values, for each pattern, of the element in the target
+    image corresponding to the position of the center of the window
+    Returns a frequency table for all observed patterns, which serves as an
+    estimator for P(X | pattern) where X in (True,False)
     """
 
     freqtable = {}
