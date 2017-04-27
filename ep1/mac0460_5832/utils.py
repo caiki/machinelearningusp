@@ -96,7 +96,7 @@ def se_disk(r=1):
     return be >= 1
 
 def se_cross(r=1):
-    cross = np.array([[0,1,0],[1,1,1],[0,1,0]])
+    cross = np.array([[0,1,0],[1,1,1],[0,1,0]], dtype=bool)
     if r > 1:
         shape = (3*r-(r-1), 3*r-(r-1))
         se  = np.zeros(shape)

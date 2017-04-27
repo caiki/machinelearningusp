@@ -28,16 +28,19 @@ def build_pattern_freqs(trainingdata):
     """
 
     freqtable = {}
+
     for imgpair in trainingdata:
         src = imgpair[0]
         target = imgpair[1]
 
         for i in range(1, src.shape[0]-1):
             for j in range(1, src.shape[1]-1):
-                pattern = src[i-1:i+2, j-1:j+2]
+                pattern = np.array( src[i-1, j],
+                                    src[i, j-1:j+2],
+                                    src[i+2, j] )
                 result = target[i, j]
                 add_to_freqtable(pattern, result, freqtable)
-        
+
     return freqtable
 
 
