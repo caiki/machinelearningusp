@@ -19,34 +19,34 @@ class TestEP(unittest.TestCase):
         self.mask_cross = se_cross(1)
 
     def test_mask_borders_horizontal(self):
-        borders = get_mask_borders(self.mask_horizontal.shape)
+        borders = mask_borders(self.mask_horizontal.shape)
         self.assertEquals(0, borders[0])
         self.assertEquals(1, borders[1])
 
     def test_mask_borders_square(self):
-        borders = get_mask_borders(self.mask_square.shape)
+        borders = mask_borders(self.mask_square.shape)
         self.assertEquals(1, borders[0])
         self.assertEquals(1, borders[1])
 
     def test_mask_borders_cross(self):
-        borders = get_mask_borders(self.mask_cross.shape)
+        borders = mask_borders(self.mask_cross.shape)
         self.assertEquals(1, borders[0])
         self.assertEquals(1, borders[1])
 
-    def test_get_pattern_horizontal(self):
-        result = get_pattern(self.img, self.mask_horizontal, 0, 1)
+    def test_slide_window_horizontal(self):
+        result = slide_window(self.img, self.mask_horizontal, 0, 1)
         expected = np.array([[True, False, True]])
         self.assertEquals(expected.all(), result.all())
 
-    def test_get_pattern_square(self):
-        result = get_pattern(self.img, self.mask_horizontal, 1, 3)
+    def test_slide_window_square(self):
+        result = slide_window(self.img, self.mask_horizontal, 1, 3)
         expected = np.array([[True, False, True],
                              [True, False, True],
                              [True, False, True]])
         self.assertEquals(expected.all(), result.all())
 
-    def test_get_pattern_cross(self):
-        result = get_pattern(self.img, self.mask_cross, 2, 2)
+    def test_slide_window_cross(self):
+        result = slide_window(self.img, self.mask_cross, 2, 2)
         expected = np.array([[False, True, False],
                             [False, True, False],
                             [False, True, False]])

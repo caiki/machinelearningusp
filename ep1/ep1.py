@@ -12,7 +12,7 @@ Assignment: EP1 - W-operators design
 from mac0460_5832.utils import *
 
 
-def get_mask_borders(se_mask_shape):
+def mask_borders(se_mask_shape):
     """
     Returns the borders to be cropped from the image
     Mask shape must consist of a pair of odd numbers
@@ -20,12 +20,12 @@ def get_mask_borders(se_mask_shape):
     return ( (se_mask_shape[0]-1)/2, (se_mask_shape[1]-1)/2 )
 
 
-def get_pattern(src, se_mask, i, j):
+def slide_window(src, se_mask, i, j):
     """
     Returns the pattern resulting from the structuring element mask
     centered at position (i,j) of the source img
     """
-    (wl, wc) = get_mask_borders(se_mask.shape) # half-window size
+    (wl, wc) = mask_borders(se_mask.shape) # half-window size
     window = src[i-wl:i+wl+1, j-wc:j+wc+1]
     return np.logical_and(window, se_mask)
 
@@ -54,7 +54,7 @@ def build_pattern_freqs(trainingdata, se_mask):
     """
 
     freqtable = {}
-    bi, bj = get_mask_borders(se_mask.shape)
+    bi, bj = mask_borders(se_mask.shape)
 
     for imgpair in trainingdata:
         src = imgpair[0]
@@ -62,10 +62,9 @@ def build_pattern_freqs(trainingdata, se_mask):
 
         for i in range(bi, src.shape[0]-bi):
             for j in range(bj, src.shape[1]-bj):
-                pattern = get_pattern(src, se_mask, i, j)
+                pattern = slide_window(src, se_mask, i, j)
                 result = target[i, j]
                 add_to_freqtable(pattern, result, freqtable)
-
     return freqtable
 
 
@@ -85,14 +84,19 @@ def generate_operator(freqtable):
     return filter(lambda x: optimal_decision(x, freqtable), freqtable.keys())
 
 
+def learn_operator(trainingdata, se_mask):
+    freqtable = build_pattern_freqs(trainingdata, se_mask)
+    return generate_operator(freqtable)
+
+
 def apply_operator(src, operator, se_mask):
     """
     Generates and returns the output image by applying the operator to src image
     """
     target = np.zeros_like(src, dtype=bool)
-    bi, bj = get_mask_borders(se_mask.shape)
+    bi, bj = mask_borders(se_mask.shape)
     for i in range(bi, src.shape[0]-bi):
         for j in range(bj, src.shape[1]-bj):
-            if pattern_hash(get_pattern(src, se_mask, i, j)) in operator:
+            if pattern_hash(slide_window(src, se_mask, i, j)) in operator:
                 target[i,j] = True
     return target
