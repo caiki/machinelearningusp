@@ -81,6 +81,9 @@ class TestEP(unittest.TestCase):
         self.assertTrue (v010 in op)
         self.assertFalse (v000 in op)
 
+    def test_initiate_class(self):
+        op = w_operator(self.mask_cross)
+        op.add_training_data_point((self.img, self.img))
 
 if __name__ == '__main__':
     unittest.main()

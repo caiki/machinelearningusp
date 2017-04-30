@@ -12,6 +12,27 @@ Assignment: EP1 - W-operators design
 from mac0460_5832.utils import *
 
 
+class w_operator:
+
+    def __init__(self, se_mask):
+        """
+        initiate a w-operator with a structuring element mask
+        """
+        self.se_mask = se_mask
+        self.trainingdata = []
+        self.freqtable = {}
+        self.operator = []
+        self.ein = []
+        self.eout = []
+
+
+    def add_training_data_point(self, datapoint):
+        """
+        datapoint must be a tuple in the format (srcimg, destimg)
+        """
+        self.trainingdata.append(datapoint)
+
+
 def mask_borders(se_mask_shape):
     """
     Returns the borders to be cropped from the image
