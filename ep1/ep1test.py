@@ -18,72 +18,77 @@ class TestEP(unittest.TestCase):
         self.mask_square =  np.ones((3,3), dtype=bool)
         self.mask_cross = se_cross(1)
 
-    def test_mask_borders_horizontal(self):
-        borders = mask_borders(self.mask_horizontal.shape)
-        self.assertEquals(0, borders[0])
-        self.assertEquals(1, borders[1])
-
-    def test_mask_borders_square(self):
-        borders = mask_borders(self.mask_square.shape)
-        self.assertEquals(1, borders[0])
-        self.assertEquals(1, borders[1])
-
-    def test_mask_borders_cross(self):
-        borders = mask_borders(self.mask_cross.shape)
-        self.assertEquals(1, borders[0])
-        self.assertEquals(1, borders[1])
-
-    def test_slide_window_horizontal(self):
-        result = slide_window(self.img, self.mask_horizontal, 0, 1)
-        expected = np.array([[True, False, True]])
-        self.assertEquals(expected.all(), result.all())
-
-    def test_slide_window_square(self):
-        result = slide_window(self.img, self.mask_horizontal, 1, 3)
-        expected = np.array([[True, False, True],
-                             [True, False, True],
-                             [True, False, True]])
-        self.assertEquals(expected.all(), result.all())
-
-    def test_slide_window_cross(self):
-        result = slide_window(self.img, self.mask_cross, 2, 2)
-        expected = np.array([[False, True, False],
-                            [False, True, False],
-                            [False, True, False]])
-        self.assertEquals(expected.all(), result.all())
-
     def test_pattern_hash(self):
         result = pattern_hash(np.ones((3,3), dtype=bool))
         expected = tuple([True for i in range(9)])
         self.assertEquals(expected, result)
 
-    def test_build_freqtable(self):
-        trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
-        freqtable = build_pattern_freqs(trainingdata, self.mask_horizontal)
-        v111 = (True,True,True)
-        v010 = (False,True,False)
-        v000 = (False,False,False)
-        self.assertTrue(freqtable[v111][True] > 0)
-        self.assertEquals(freqtable[v111][False], 0)
-        self.assertTrue(freqtable[v010][True] > 0)
-        self.assertEquals(freqtable[v010][False], 0)
-        self.assertTrue(freqtable[v000][False] > 0)
-        self.assertEquals(freqtable[v000][True], 0)
+    def test_mask_borders_horizontal(self):
+        se = structuring_element(self.mask_horizontal)
+        self.assertEquals(0, se.border[0])
+        self.assertEquals(1, se.border[1])
 
-    def test_generate_operator(self):
-        trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
-        freqtable = build_pattern_freqs(trainingdata, self.mask_horizontal)
-        v111 = (True,True,True)
-        v010 = (False,True,False)
-        v000 = (False,False,False)
-        op = generate_operator(freqtable)
-        self.assertTrue (v111 in op)
-        self.assertTrue (v010 in op)
-        self.assertFalse (v000 in op)
+    def test_mask_borders_square(self):
+        se = structuring_element(self.mask_square)
+        self.assertEquals(1, se.border[0])
+        self.assertEquals(1, se.border[1])
+
+    def test_mask_borders_cross(self):
+        se = structuring_element(self.mask_cross)
+        self.assertEquals(1, se.border[0])
+        self.assertEquals(1, se.border[1])
 
     def test_initiate_class(self):
-        op = w_operator(self.mask_cross)
-        op.add_training_data_point((self.img, self.img))
+        psi = w_operator(self.mask_cross)
+        psi.add_training_example(self.img, self.img)
+
+    def test_slide_window_horizontal(self):
+        psi = w_operator(self.mask_horizontal)
+        result = psi.slide_window(self.img, 0, 1)
+        expected = np.array([[True, False, True]])
+        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+
+    def test_slide_window_square(self):
+        psi = w_operator(self.mask_square)
+        result = psi.slide_window(self.img, 1, 3)
+        expected = np.array([[True, False, True],
+                             [True, False, True],
+                             [True, False, True]])
+        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+
+    def test_slide_window_cross(self):
+        psi = w_operator(self.mask_cross)
+        result = psi.slide_window(self.img, 2, 2)
+        expected = np.array([[False, True, False],
+                            [False, True, False],
+                            [False, True, False]])
+        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+
+    def test_build_freqtable(self):
+        psi = w_operator(self.mask_horizontal)
+        psi.add_training_example(self.img, self.img)
+        psi.add_training_example(self.img.T, self.img.T)
+        psi.build_pattern_freqs()
+        v111 = (True,True,True)
+        v010 = (False,True,False)
+        v000 = (False,False,False)
+        self.assertTrue(psi.freqtable[v111][True] > 0)
+        self.assertEquals(psi.freqtable[v111][False], 0)
+        self.assertTrue(psi.freqtable[v010][True] > 0)
+        self.assertEquals(psi.freqtable[v010][False], 0)
+        self.assertTrue(psi.freqtable[v000][False] > 0)
+        self.assertEquals(psi.freqtable[v000][True], 0)
+
+    def test_generate_operator(self):
+        psi = w_operator(self.mask_horizontal)
+        psi.add_training_example(self.img, self.img)
+        psi.add_training_example(self.img.T, self.img.T)
+        psi.build_pattern_freqs()
+        psi.generate_operator()
+        self.assertTrue ((True,True,True) in psi.operator)
+        self.assertTrue ((False,True,False) in psi.operator)
+        self.assertFalse ((False,False,False) in psi.operator)
+
 
 if __name__ == '__main__':
     unittest.main()

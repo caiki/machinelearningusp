@@ -12,45 +12,6 @@ Assignment: EP1 - W-operators design
 from mac0460_5832.utils import *
 
 
-class w_operator:
-
-    def __init__(self, se_mask):
-        """
-        initiate a w-operator with a structuring element mask
-        """
-        self.se_mask = se_mask
-        self.trainingdata = []
-        self.freqtable = {}
-        self.operator = []
-        self.ein = []
-        self.eout = []
-
-
-    def add_training_data_point(self, datapoint):
-        """
-        datapoint must be a tuple in the format (srcimg, destimg)
-        """
-        self.trainingdata.append(datapoint)
-
-
-def mask_borders(se_mask_shape):
-    """
-    Returns the borders to be cropped from the image
-    Mask shape must consist of a pair of odd numbers
-    """
-    return ( (se_mask_shape[0]-1)/2, (se_mask_shape[1]-1)/2 )
-
-
-def slide_window(src, se_mask, i, j):
-    """
-    Returns the pattern resulting from the structuring element mask
-    centered at position (i,j) of the source img
-    """
-    (wl, wc) = mask_borders(se_mask.shape) # half-window size
-    window = src[i-wl:i+wl+1, j-wc:j+wc+1]
-    return np.logical_and(window, se_mask)
-
-
 def pattern_hash(pattern):
     """
     Receives n-dim numpy array and converts it to a 1-dim tuple (hashable)
@@ -58,66 +19,100 @@ def pattern_hash(pattern):
     return tuple(pattern.flatten())
 
 
-def add_to_freqtable(pattern, result, freqtable):
-    pattern = pattern_hash(pattern)
-    if not pattern in freqtable:
-        freqtable[pattern] = { True : 0, False : 0 }
-    freqtable[pattern][result] += 1
-
-
-def build_pattern_freqs(trainingdata, se_mask):
+class structuring_element:
     """
-    Slides a window with the structuring element as a mask through the src image
-    and counts the values, for each pattern, of the element in the target
-    image corresponding to the position of the center of the window
-    Returns a frequency table for all observed patterns, which serves as an
-    estimator for P(X | pattern) where X in (True,False)
+    structure for the se (cross, rectangle, etc) containing its mask and the
+    size of its borders
     """
 
-    freqtable = {}
-    bi, bj = mask_borders(se_mask.shape)
+    def __init__(self, se_mask):
+        self.mask = se_mask
+        self.border = ( (se_mask.shape[0]-1)/2, (se_mask.shape[1]-1)/2 )
 
-    for imgpair in trainingdata:
-        src = imgpair[0]
-        target = imgpair[1]
 
+class w_operator:
+
+    def __init__(self, se_mask):
+        """
+        initiate a w-operator with a structuring element mask
+        """
+        self.struct_elem = structuring_element(se_mask)
+        self.trainingdata = []
+        self.freqtable = {}
+        self.operator = []
+        self.ein = []
+        self.eout = []
+
+
+    def add_training_example(self, srcimg, destimg):
+        """
+        add a training example
+        """
+        self.trainingdata.append((srcimg, destimg))
+
+
+    def slide_window(self, src, i, j):
+        """
+        Returns the pattern resulting from the structuring element mask
+        centered at position (i,j) of the source img
+        """
+        (bi, bj) = self.struct_elem.border # half-window size
+        window = src[i-bi:i+bi+1, j-bj:j+bj+1]
+        return np.logical_and(window, self.struct_elem.mask)
+
+
+    def add_to_freqtable(self, pattern, result):
+        pattern = pattern_hash(pattern)
+        if not pattern in self.freqtable:
+            self.freqtable[pattern] = { True : 0, False : 0 }
+        self.freqtable[pattern][result] += 1
+
+
+    def build_pattern_freqs(self):
+        """
+        Slides a window with the structuring element as a mask through the src
+        image and returns a frequency table which serves as an estimator for
+        P(X | pattern) where X is the value of the corresponding position (i,j),
+        in the target image, of the center of the window
+        """
+        bi, bj = self.struct_elem.border # half-window size
+
+        for (src, target) in self.trainingdata:
+            for i in range(bi, src.shape[0]-bi):
+                for j in range(bj, src.shape[1]-bj):
+                    pattern = self.slide_window(src, i, j)
+                    self.add_to_freqtable(pattern, target[i, j])
+
+
+    def optimal_decision(self, pattern):
+        """
+        Returns the value that minimizes MAE for this pattern considering the
+        observations given by the frequency table
+        """
+        return self.freqtable[pattern][True] > self.freqtable[pattern][False]
+
+
+    def generate_operator(self):
+        """
+        Returns the operator, which consists of a list of patterns for which the
+        output is estimated to be valued True)
+        """
+        self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable.keys())
+
+
+    def learn_operator(self):
+        self.build_pattern_freqs()
+        self.generate_operator()
+
+
+    def apply_operator(self, src):
+        """
+        Generates and returns the output image by applying the operator to src image
+        """
+        target = np.zeros_like(src, dtype=bool)
+        bi, bj = self.struct_elem.border # half-window size
         for i in range(bi, src.shape[0]-bi):
             for j in range(bj, src.shape[1]-bj):
-                pattern = slide_window(src, se_mask, i, j)
-                result = target[i, j]
-                add_to_freqtable(pattern, result, freqtable)
-    return freqtable
-
-
-def optimal_decision(pattern, freqtable):
-    """
-    Returns the value that minimizes MAE for this pattern considering the
-    observations given by the frequency table
-    """
-    return freqtable[pattern][True] > freqtable[pattern][False]
-
-
-def generate_operator(freqtable):
-    """
-    Returns the operator, which consists of a list of patterns for which the
-    output is estimated to be valued True)
-    """
-    return filter(lambda x: optimal_decision(x, freqtable), freqtable.keys())
-
-
-def learn_operator(trainingdata, se_mask):
-    freqtable = build_pattern_freqs(trainingdata, se_mask)
-    return generate_operator(freqtable)
-
-
-def apply_operator(src, operator, se_mask):
-    """
-    Generates and returns the output image by applying the operator to src image
-    """
-    target = np.zeros_like(src, dtype=bool)
-    bi, bj = mask_borders(se_mask.shape)
-    for i in range(bi, src.shape[0]-bi):
-        for j in range(bj, src.shape[1]-bj):
-            if pattern_hash(slide_window(src, se_mask, i, j)) in operator:
-                target[i,j] = True
-    return target
+                if pattern_hash(self.slide_window(src, i, j)) in self.operator:
+                    target[i,j] = True
+        return target
