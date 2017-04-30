@@ -38,9 +38,18 @@ class TestEP(unittest.TestCase):
         self.assertEquals(1, se.border[0])
         self.assertEquals(1, se.border[1])
 
-    def test_initiate_class(self):
-        psi = w_operator(self.mask_cross)
+    def test_initiate_empty(self):
+        psi = w_operator()
+        psi.struct_elem = structuring_element(self.mask_square)
         psi.add_training_example(self.img, self.img)
+
+    def test_initiate_mask(self):
+        psi = w_operator(self.mask_horizontal)
+        psi.add_training_example(self.img, self.img)
+
+    def test_initiate_mask_and_data(self):
+        trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
+        psi = w_operator(self.mask_cross, trainingdata)
 
     def test_slide_window_horizontal(self):
         psi = w_operator(self.mask_horizontal)

@@ -24,7 +24,6 @@ class structuring_element:
     structure for the se (cross, rectangle, etc) containing its mask and the
     size of its borders
     """
-
     def __init__(self, se_mask):
         self.mask = se_mask
         self.border = ( (se_mask.shape[0]-1)/2, (se_mask.shape[1]-1)/2 )
@@ -32,17 +31,14 @@ class structuring_element:
 
 class w_operator:
 
-    def __init__(self, se_mask):
-        """
-        initiate a w-operator with a structuring element mask
-        """
-        self.struct_elem = structuring_element(se_mask)
-        self.trainingdata = []
+    def __init__(self, se_mask=None, trainingdata=[]):
+        if se_mask is not None:
+            self.struct_elem = structuring_element(se_mask)
+        self.trainingdata = trainingdata
         self.freqtable = {}
         self.operator = []
         self.ein = []
         self.eout = []
-
 
     def add_training_example(self, srcimg, destimg):
         """
@@ -100,7 +96,7 @@ class w_operator:
         self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable.keys())
 
 
-    def learn_operator(self):
+    def learn(self):
         self.build_pattern_freqs()
         self.generate_operator()
 
