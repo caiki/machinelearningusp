@@ -45,17 +45,20 @@ class structuring_element:
         self.mask = se_mask
         self.border = ( (se_mask.shape[0]-1)/2, (se_mask.shape[1]-1)/2 )
 
+    def imgborders (self, img):
+        bi, bj =  self.border
+        return ( bi, img.shape[0]-bi, bj, img.shape[1]-bj )
 
-def imgborders (img, se):
-    bi, bj =  se.border
-    return ( bi, img.shape[0]-bi, bj, img.shape[1]-bj )
+    def cropborders (self, img):
+        top, bottom, left, rigth = self.imgborders(img)
+        return img[top:bottom,left:rigth]
 
 
 class w_operator:
 
     def __init__(self, se_mask=None, trainingdata=[]):
         if se_mask is not None:
-            self.struct_elem = structuring_element(se_mask)
+            self.se = structuring_element(se_mask)
         self.trainingdata = trainingdata
         self.freqtable = {}
         self.operator = []
@@ -66,7 +69,7 @@ class w_operator:
         scans a new example and adds its data to the frequency table
         """
         self.trainingdata.append((srcimg, destimg))
-        if self.struct_elem is not None:
+        if self.se is not None:
             self.scan_example(srcimg, destimg)
             self.update_model()
 
@@ -76,9 +79,9 @@ class w_operator:
         returns the pattern resulting from centering the mask window with the
         structuring element at position (i,j) of the source img
         """
-        (bi, bj) = self.struct_elem.border # half-window size
+        (bi, bj) = self.se.border # half-window size
         window = src[i-bi:i+bi+1, j-bj:j+bj+1]
-        return np.logical_and(window, self.struct_elem.mask)
+        return np.logical_and(window, self.se.mask)
 
 
     def add_to_freqtable(self, pattern, result):
@@ -94,7 +97,7 @@ class w_operator:
         table for estimating P(X | pattern), where X corresponds to the value of
         position (i,j) in the target image
         """
-        top, bottom, left, rigth = imgborders(src, self.struct_elem)
+        top, bottom, left, rigth = self.se.imgborders(src)
         for i in range(top, bottom):
             for j in range(left, rigth):
                 pattern = self.slide_window(src, i, j)
@@ -136,19 +139,22 @@ class w_operator:
         self.update_model()
 
 
-    def error_in_sample(self):
+    def error(self, imgpairs):
         """
-        returns the error calculated over the images in the training data
-        (distance between target images and images generated with current op)
+        returns the mean distance between target images and output images
+        generated with current operator
         """
         self.update_model()
         v = []
-        for (srcimg, targetimg) in self.trainingdata:
-            top, bottom, left, rigth = imgborders(srcimg, self.struct_elem)
-            target = targetimg[top:bottom, left:rigth]
-            output = self.apply_operator(srcimg)[top:bottom, left:rigth]
+        for (srcimg, targetimg) in imgpairs:
+            target = self.se.cropborders(targetimg)
+            output = self.se.cropborders(self.apply_operator(srcimg))
             v.append((target, output))
         return mean_dist(v)
+
+
+    def error_in_sample(self):
+        return self.error(self.trainingdata)
 
 
     def apply_operator(self, src):
@@ -156,7 +162,7 @@ class w_operator:
         generates and returns the output image by applying the operator to src image
         """
         target = np.zeros_like(src, dtype=bool)
-        top, bottom, left, rigth = imgborders(src, self.struct_elem)
+        top, bottom, left, rigth = self.se.imgborders(src)
         for i in range(top, bottom):
             for j in range(left, rigth):
                 if pattern_hash(self.slide_window(src, i, j)) in self.operator:
