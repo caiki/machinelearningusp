@@ -46,6 +46,11 @@ class structuring_element:
         self.border = ( (se_mask.shape[0]-1)/2, (se_mask.shape[1]-1)/2 )
 
 
+def imgborders (img, se):
+    bi, bj =  se.border
+    return ( bi, img.shape[0]-bi, bj, img.shape[1]-bj )
+
+
 class w_operator:
 
     def __init__(self, se_mask=None, trainingdata=[]):
@@ -54,8 +59,6 @@ class w_operator:
         self.trainingdata = trainingdata
         self.freqtable = {}
         self.operator = []
-        self.ein = []
-        self.eout = []
 
 
     def add_training_example(self, srcimg, destimg):
@@ -91,9 +94,9 @@ class w_operator:
         table for estimating P(X | pattern), where X corresponds to the value of
         position (i,j) in the target image
         """
-        bi, bj = self.struct_elem.border # half-window size
-        for i in range(bi, src.shape[0]-bi):
-            for j in range(bj, src.shape[1]-bj):
+        top, bottom, left, rigth = imgborders(src, self.struct_elem)
+        for i in range(top, bottom):
+            for j in range(left, rigth):
                 pattern = self.slide_window(src, i, j)
                 self.add_to_freqtable(pattern, target[i, j])
 
@@ -139,16 +142,11 @@ class w_operator:
         (distance between target images and images generated with current op)
         """
         self.update_model()
-        # v = [(t[1], self.apply_operator(t[0])) for t in self.trainingdata]
-        # for imgpair in v:
-        #     draw_img_pair(imgpair[0], imgpair[1])
-        bi, bj = self.struct_elem.border
         v = []
         for (srcimg, targetimg) in self.trainingdata:
-            l = { 'top': bi, 'bottom':srcimg.shape[0]-bi,
-                  'left': bj, 'right':srcimg.shape[1]-bj }
-            target = targetimg[l['top']:l['bottom'], l['left']:l['right']]
-            output = self.apply_operator(srcimg)[l['top']:l['bottom'], l['left']:l['right']]
+            top, bottom, left, rigth = imgborders(srcimg, self.struct_elem)
+            target = targetimg[top:bottom, left:rigth]
+            output = self.apply_operator(srcimg)[top:bottom, left:rigth]
             v.append((target, output))
         return mean_dist(v)
 
@@ -158,9 +156,9 @@ class w_operator:
         generates and returns the output image by applying the operator to src image
         """
         target = np.zeros_like(src, dtype=bool)
-        bi, bj = self.struct_elem.border # half-window size
-        for i in range(bi, src.shape[0]-bi):
-            for j in range(bj, src.shape[1]-bj):
+        top, bottom, left, rigth = imgborders(src, self.struct_elem)
+        for i in range(top, bottom):
+            for j in range(left, rigth):
                 if pattern_hash(self.slide_window(src, i, j)) in self.operator:
                     target[i,j] = True
         return target
