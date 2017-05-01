@@ -40,11 +40,14 @@ class w_operator:
         self.ein = []
         self.eout = []
 
+
     def add_training_example(self, srcimg, destimg):
         """
-        add a training example
+        scans a new example and adds its data to the frequency table
         """
         self.trainingdata.append((srcimg, destimg))
+        if self.struct_elem is not None:
+            self.scan_example(srcimg, destimg)
 
 
     def slide_window(self, src, i, j):
@@ -64,7 +67,7 @@ class w_operator:
         self.freqtable[pattern][result] += 1
 
 
-    def build_pattern_freqs(self):
+    def scan_example(self, src, target):
         """
         Slides a window with the structuring element as a mask through the src
         image and returns a frequency table which serves as an estimator for
@@ -72,12 +75,10 @@ class w_operator:
         in the target image, of the center of the window
         """
         bi, bj = self.struct_elem.border # half-window size
-
-        for (src, target) in self.trainingdata:
-            for i in range(bi, src.shape[0]-bi):
-                for j in range(bj, src.shape[1]-bj):
-                    pattern = self.slide_window(src, i, j)
-                    self.add_to_freqtable(pattern, target[i, j])
+        for i in range(bi, src.shape[0]-bi):
+            for j in range(bj, src.shape[1]-bj):
+                pattern = self.slide_window(src, i, j)
+                self.add_to_freqtable(pattern, target[i, j])
 
 
     def optimal_decision(self, pattern):
@@ -88,17 +89,26 @@ class w_operator:
         return self.freqtable[pattern][True] > self.freqtable[pattern][False]
 
 
-    def generate_operator(self):
-        """
-        Returns the operator, which consists of a list of patterns for which the
-        output is estimated to be valued True)
-        """
-        self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable.keys())
-
-
     def learn(self):
-        self.build_pattern_freqs()
-        self.generate_operator()
+        """
+        Builds the operator, which consists of a list of patterns for which the
+        output is estimated to be True
+        """
+        if self.trainingdata is not None and len(self.freqtable) == 0:
+            self.train()
+        if len(self.freqtable) > 0:
+            patterns = self.freqtable.keys()
+            self.operator = filter(lambda x: self.optimal_decision(x), patterns)
+
+
+    def train(self):
+        """
+        Scan all examples in the training data and build the full freq table
+        Not needed if examples were added one by one with add_training_example,
+        because, in that case, freq table is built while examples are added
+        """
+        for (src, target) in self.trainingdata:
+            self.scan_example(src, target)
 
 
     def apply_operator(self, src):
