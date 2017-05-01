@@ -21,8 +21,7 @@ def pattern_hash(pattern):
 
 class structuring_element:
     """
-    structure for the se (cross, rectangle, etc) containing its mask and the
-    size of its borders
+    structuring element containing its mask and the size of its borders
     """
     def __init__(self, se_mask):
         self.mask = se_mask
@@ -52,8 +51,8 @@ class w_operator:
 
     def slide_window(self, src, i, j):
         """
-        Returns the pattern resulting from the structuring element mask
-        centered at position (i,j) of the source img
+        Returns the pattern resulting from centering the mask window with the
+        structuring element at position (i,j) of the source img
         """
         (bi, bj) = self.struct_elem.border # half-window size
         window = src[i-bi:i+bi+1, j-bj:j+bj+1]
@@ -69,16 +68,24 @@ class w_operator:
 
     def scan_example(self, src, target):
         """
-        Slides a window with the structuring element as a mask through the src
-        image and returns a frequency table which serves as an estimator for
-        P(X | pattern) where X is the value of the corresponding position (i,j),
-        in the target image, of the center of the window
+        Slides a window with the se through the src img and builds a frequency
+        table for estimating P(X | pattern), where X corresponds to the value of
+        position (i,j) in the target image
         """
         bi, bj = self.struct_elem.border # half-window size
         for i in range(bi, src.shape[0]-bi):
             for j in range(bj, src.shape[1]-bj):
                 pattern = self.slide_window(src, i, j)
                 self.add_to_freqtable(pattern, target[i, j])
+
+
+    def train(self):
+        """
+        Scan all examples in the training data and build the full freq table
+        Not needed if examples were added one by one with add_training_example
+        """
+        for (src, target) in self.trainingdata:
+            self.scan_example(src, target)
 
 
     def optimal_decision(self, pattern):
@@ -97,18 +104,7 @@ class w_operator:
         if self.trainingdata is not None and len(self.freqtable) == 0:
             self.train()
         if len(self.freqtable) > 0:
-            patterns = self.freqtable.keys()
-            self.operator = filter(lambda x: self.optimal_decision(x), patterns)
-
-
-    def train(self):
-        """
-        Scan all examples in the training data and build the full freq table
-        Not needed if examples were added one by one with add_training_example,
-        because, in that case, freq table is built while examples are added
-        """
-        for (src, target) in self.trainingdata:
-            self.scan_example(src, target)
+            self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable)
 
 
     def apply_operator(self, src):
