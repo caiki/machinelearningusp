@@ -14,9 +14,27 @@ from mac0460_5832.utils import *
 
 def pattern_hash(pattern):
     """
-    Receives n-dim numpy array and converts it to a 1-dim tuple (hashable)
+    receives n-dim numpy array and converts it to a 1-dim tuple (hashable)
     """
     return tuple(pattern.flatten())
+
+
+def img_dist(img1, img2):
+    """
+    returns the percentage of pixels that are different between img1 and img2
+    both images must be bidimensional numpy arrays with the same shape
+    """
+    correctpixels = sum(sum(img1 == img2))
+    totalpixels = img1.shape[0] * img1.shape[1]
+    return  1 - (float(correctpixels) / totalpixels)
+
+
+def mean_dist(imglist):
+    """
+    finds the mean error (distance) in a list containing pairs of images
+    """
+    dist = [img_dist(x[0],x[1]) for x in imglist]
+    return float(sum(dist)) / len(dist)
 
 
 class structuring_element:
@@ -47,11 +65,12 @@ class w_operator:
         self.trainingdata.append((srcimg, destimg))
         if self.struct_elem is not None:
             self.scan_example(srcimg, destimg)
+            self.update_model()
 
 
     def slide_window(self, src, i, j):
         """
-        Returns the pattern resulting from centering the mask window with the
+        returns the pattern resulting from centering the mask window with the
         structuring element at position (i,j) of the source img
         """
         (bi, bj) = self.struct_elem.border # half-window size
@@ -68,7 +87,7 @@ class w_operator:
 
     def scan_example(self, src, target):
         """
-        Slides a window with the se through the src img and builds a frequency
+        slides a window with the se through the src img and builds a frequency
         table for estimating P(X | pattern), where X corresponds to the value of
         position (i,j) in the target image
         """
@@ -81,7 +100,7 @@ class w_operator:
 
     def train(self):
         """
-        Scan all examples in the training data and build the full freq table
+        scan all examples in the training data and build the full freq table
         Not needed if examples were added one by one with add_training_example
         """
         for (src, target) in self.trainingdata:
@@ -90,26 +109,53 @@ class w_operator:
 
     def optimal_decision(self, pattern):
         """
-        Returns the value that minimizes MAE for this pattern considering the
+        returns the value that minimizes MAE for this pattern considering the
         observations given by the frequency table
         """
         return self.freqtable[pattern][True] > self.freqtable[pattern][False]
 
 
-    def learn(self):
+    def update_model(self):
         """
-        Builds the operator, which consists of a list of patterns for which the
-        output is estimated to be True
+        generates an operator based on the freq table
         """
-        if self.trainingdata is not None and len(self.freqtable) == 0:
-            self.train()
         if len(self.freqtable) > 0:
             self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable)
 
 
+    def learn(self):
+        """
+        builds the operator, which consists of a list of patterns for which the
+        output is estimated to be True
+        """
+        if self.trainingdata is not None and len(self.freqtable) == 0:
+            self.train()
+        self.update_model()
+
+
+    def error_in_sample(self):
+        """
+        returns the error calculated over the images in the training data
+        (distance between target images and images generated with current op)
+        """
+        self.update_model()
+        # v = [(t[1], self.apply_operator(t[0])) for t in self.trainingdata]
+        # for imgpair in v:
+        #     draw_img_pair(imgpair[0], imgpair[1])
+        bi, bj = self.struct_elem.border
+        v = []
+        for (srcimg, targetimg) in self.trainingdata:
+            l = { 'top': bi, 'bottom':srcimg.shape[0]-bi,
+                  'left': bj, 'right':srcimg.shape[1]-bj }
+            target = targetimg[l['top']:l['bottom'], l['left']:l['right']]
+            output = self.apply_operator(srcimg)[l['top']:l['bottom'], l['left']:l['right']]
+            v.append((target, output))
+        return mean_dist(v)
+
+
     def apply_operator(self, src):
         """
-        Generates and returns the output image by applying the operator to src image
+        generates and returns the output image by applying the operator to src image
         """
         target = np.zeros_like(src, dtype=bool)
         bi, bj = self.struct_elem.border # half-window size

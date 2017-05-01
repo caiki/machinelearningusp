@@ -94,6 +94,10 @@ class TestEP(unittest.TestCase):
         self.assertTrue ((False,True,False) in psi.operator)
         self.assertFalse ((False,False,False) in psi.operator)
 
+    def test_img_dist(self):
+        a = np.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]])
+        b = np.array([[1,0,1],[0,2,2],[3,3,0],[4,4,4]])
+        self.assertAlmostEquals(0.25, img_dist(a,b))
 
 if __name__ == '__main__':
     unittest.main()
