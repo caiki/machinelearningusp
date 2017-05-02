@@ -59,6 +59,8 @@ class w_operator:
     def __init__(self, se_mask=None, trainingdata=[]):
         if se_mask is not None:
             self.se = structuring_element(se_mask)
+        else:
+            self.se = None
         self.trainingdata = trainingdata
         self.freqtable = {}
         self.operator = []
@@ -118,7 +120,8 @@ class w_operator:
         returns the value that minimizes MAE for this pattern considering the
         observations given by the frequency table
         """
-        return self.freqtable[pattern][True] > self.freqtable[pattern][False]
+        freq = self.freqtable.get(pattern)
+        return freq and freq[True] > freq[False]
 
 
     def update_model(self):
@@ -165,6 +168,8 @@ class w_operator:
         top, bottom, left, rigth = self.se.imgborders(src)
         for i in range(top, bottom):
             for j in range(left, rigth):
-                if pattern_hash(self.slide_window(src, i, j)) in self.operator:
+                pattern = pattern_hash(self.slide_window(src, i, j))
+                #if pattern_hash(self.slide_window(src, i, j)) in self.operator:
+                if self.optimal_decision(pattern) :
                     target[i,j] = True
         return target
