@@ -12,7 +12,7 @@ Assignment: EP1 - W-operators design
 from mac0460_5832.utils import *
 
 
-def pattern_hash(pattern):
+def p_hash(pattern):
     """
     receives n-dim numpy array and converts it to a 1-dim tuple (hashable)
     """
@@ -27,7 +27,6 @@ def img_dist(img1, img2):
     correctpixels = sum(sum(img1 == img2))
     totalpixels = img1.shape[0] * img1.shape[1]
     return  1 - (float(correctpixels) / totalpixels)
-
 
 def mean_dist(imglist):
     """
@@ -60,18 +59,17 @@ class w_operator:
         self.se = structuring_element(se_mask)
         self.trainingdata = trainingdata
         self.freqtable = {}
-        self.operator = []
-
+        for example in trainingdata:
+            self.scan_example(example[0], example[1])
+        self.update_model()
 
     def add_training_example(self, srcimg, destimg):
         """
         scans a new example and adds its data to the frequency table
         """
         self.trainingdata.append((srcimg, destimg))
-        if self.se is not None:
-            self.scan_example(srcimg, destimg)
-            self.update_model()
-
+        self.scan_example(srcimg, destimg)
+        self.update_model()
 
     def slide_window(self, src, i, j):
         """
@@ -82,13 +80,11 @@ class w_operator:
         window = src[i-bi:i+bi+1, j-bj:j+bj+1]
         return np.logical_and(window, self.se.mask)
 
-
     def add_to_freqtable(self, pattern, result):
-        pattern = pattern_hash(pattern)
+        pattern = p_hash(pattern)
         if not pattern in self.freqtable:
             self.freqtable[pattern] = { True : 0, False : 0 }
         self.freqtable[pattern][result] += 1
-
 
     def scan_example(self, src, target):
         """
@@ -102,16 +98,6 @@ class w_operator:
                 pattern = self.slide_window(src, i, j)
                 self.add_to_freqtable(pattern, target[i, j])
 
-
-    def train(self):
-        """
-        scan all examples in the training data and build the full freq table
-        Not needed if examples were added one by one with add_training_example
-        """
-        for (src, target) in self.trainingdata:
-            self.scan_example(src, target)
-
-
     def optimal_decision(self, pattern):
         """
         returns the value that minimizes MAE for this pattern considering the
@@ -120,24 +106,32 @@ class w_operator:
         freq = self.freqtable.get(pattern)
         return freq and freq[True] > freq[False]
 
-
     def update_model(self):
         """
         generates an operator based on the freq table
         """
-        if len(self.freqtable) > 0:
-            self.operator = filter(lambda x: self.optimal_decision(x), self.freqtable)
+        self.operator = { x: self.optimal_decision(x) for x in self.freqtable }
 
-
-    def learn(self):
+    def apply(self, src):
         """
-        builds the operator, which consists of a list of patterns for which the
-        output is estimated to be True
+        generates and returns the output image by applying the operator to src image
         """
-        if self.trainingdata is not None and len(self.freqtable) == 0:
-            self.train()
-        self.update_model()
+        target = np.zeros_like(src, dtype=bool)
+        top, bottom, left, rigth = self.se.imgborders(src)
+        for i in range(top, bottom):
+            for j in range(left, rigth):
+                pattern = p_hash(self.slide_window(src, i, j))
+                #if p_hash(self.slide_window(src, i, j)) in self.operator:
+                if self.optimal_decision(pattern) :
+                    target[i,j] = True
+        return target
 
+    def transform( self, imgpairs):
+        """
+        receives a buk set of img pairs in the form (original, ideal) and
+        applies the operator to the original ones, leaving the ideals unmodified
+        """
+        return [(self.apply(img[0]), img[1]) for img in imgpairs]
 
     def error(self, imgpairs):
         """
@@ -148,25 +142,41 @@ class w_operator:
         v = []
         for (srcimg, targetimg) in imgpairs:
             target = self.se.cropborders(targetimg)
-            output = self.se.cropborders(self.apply_operator(srcimg))
+            output = self.se.cropborders(self.apply(srcimg))
             v.append((target, output))
         return mean_dist(v)
-
 
     def error_in_sample(self):
         return self.error(self.trainingdata)
 
 
-    def apply_operator(self, src):
+default_multi_se = [se_box(4), se_box(3), se_box(2), se_box(1)]
+
+alternate_multi_se = [se_box(4), se_cross(4),
+                      se_box(3), se_cross(3),
+                      se_box(2), se_cross(2),
+                      se_box(1), se_cross(1)]
+
+class multiresolution:
+
+    def __init__(self, se_list=default_multi_se, trainingdata=[]):
         """
-        generates and returns the output image by applying the operator to src image
+        se_list = ordered list (largest to smallest resolution) of structuring
+        elements to be used in each pyramid level
+        Each level will be defined by its own freq table
         """
-        target = np.zeros_like(src, dtype=bool)
-        top, bottom, left, rigth = self.se.imgborders(src)
-        for i in range(top, bottom):
-            for j in range(left, rigth):
-                pattern = pattern_hash(self.slide_window(src, i, j))
-                #if pattern_hash(self.slide_window(src, i, j)) in self.operator:
-                if self.optimal_decision(pattern) :
-                    target[i,j] = True
-        return target
+        self.operators = []
+        for se in se_list:
+            psi = w_operator(se, trainingdata)
+            self.operators.append(psi)
+
+    def add_training_example(self, srcimg, destimg):
+        for op in self.operators:
+            op.add_training_example(srcimg, destimg)
+
+    def optimal_decision(self, pattern):
+        for operator in self.operators:
+            found = operator.freqtable.get(pattern)
+            if found:
+                return found
+        return False # Not found in any level. Gotta be really unlucky, mate

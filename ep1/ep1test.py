@@ -19,8 +19,8 @@ class TestEP(unittest.TestCase):
         self.mask_cross = se_cross(1)
         self.trainingdata = [(self.img, self.img),(self.img.T, self.img.T)]
 
-    def test_pattern_hash(self):
-        result = pattern_hash(np.ones((3,3), dtype=bool))
+    def test_p_hash(self):
+        result = p_hash(np.ones((3,3), dtype=bool))
         expected = tuple([True for i in range(9)])
         self.assertEquals(expected, result)
 
@@ -43,26 +43,26 @@ class TestEP(unittest.TestCase):
         psi = w_operator()
         psi.struct_elem = structuring_element(self.mask_square)
         psi.add_training_example(self.img, self.img)
-        self.assertEquals(pattern_hash(psi.se.mask), pattern_hash(self.mask_square))
+        self.assertEquals(p_hash(psi.se.mask), p_hash(self.mask_square))
         self.assertTrue(len(psi.freqtable) > 0)
 
     def test_initiate_mask(self):
         psi = w_operator(self.mask_horizontal)
         psi.add_training_example(self.img, self.img)
-        self.assertEquals(pattern_hash(psi.se.mask), pattern_hash(self.mask_horizontal))
+        self.assertEquals(p_hash(psi.se.mask), p_hash(self.mask_horizontal))
         self.assertTrue(len(psi.freqtable) > 0)
 
     def test_initiate_mask_and_data(self):
         trainingdata = [(self.img, self.img), (self.img.T, self.img.T)]
         psi = w_operator(self.mask_cross, trainingdata)
-        self.assertEquals(pattern_hash(psi.se.mask), pattern_hash(self.mask_cross))
-        self.assertTrue(len(psi.freqtable) == 0)
+        self.assertEquals(p_hash(psi.se.mask), p_hash(self.mask_cross))
+        self.assertTrue(len(psi.freqtable) > 0)
 
     def test_slide_window_horizontal(self):
         psi = w_operator(self.mask_horizontal)
         result = psi.slide_window(self.img, 0, 1)
         expected = np.array([[True, False, True]])
-        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+        self.assertEquals(p_hash(expected), p_hash(result))
 
     def test_slide_window_square(self):
         psi = w_operator(self.mask_square)
@@ -70,7 +70,7 @@ class TestEP(unittest.TestCase):
         expected = np.array([[True, False, True],
                              [True, False, True],
                              [True, False, True]])
-        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+        self.assertEquals(p_hash(expected), p_hash(result))
 
     def test_slide_window_cross(self):
         psi = w_operator(self.mask_cross)
@@ -78,11 +78,10 @@ class TestEP(unittest.TestCase):
         expected = np.array([[False, True, False],
                             [False, True, False],
                             [False, True, False]])
-        self.assertEquals(pattern_hash(expected), pattern_hash(result))
+        self.assertEquals(p_hash(expected), p_hash(result))
 
     def test_train(self):
         psi = w_operator(self.mask_horizontal, self.trainingdata)
-        psi.train()
         v111 = (True,True,True)
         v010 = (False,True,False)
         v000 = (False,False,False)
@@ -95,10 +94,11 @@ class TestEP(unittest.TestCase):
 
     def test_learn(self):
         psi = w_operator(self.mask_horizontal, self.trainingdata)
-        psi.learn()
-        self.assertTrue ((True,True,True) in psi.operator)
-        self.assertTrue ((False,True,False) in psi.operator)
-        self.assertFalse ((False,False,False) in psi.operator)
+        self.assertTrue(psi.operator[(True,True,True)])
+        self.assertTrue(psi.operator[(False,True,False)])
+        self.assertFalse(psi.operator[(False,False,False)])
+        self.assertFalse(psi.operator.get((False,False,True))) # not seen = false
+
 
     def test_img_dist(self):
         a = np.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]])
