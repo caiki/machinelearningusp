@@ -121,7 +121,6 @@ class w_operator:
         for i in range(top, bottom):
             for j in range(left, rigth):
                 pattern = p_hash(self.slide_window(src, i, j))
-                #if p_hash(self.slide_window(src, i, j)) in self.operator:
                 if self.optimal_decision(pattern) :
                     target[i,j] = True
         return target
@@ -150,11 +149,9 @@ class w_operator:
         return self.error(self.trainingdata)
 
 
-default_multi_se = [se_box(4), se_box(3), se_box(2), se_box(1)]
+default_multi_se = [se_box(i) for i in range(3,0,-1)]
 
-alternate_multi_se = [se_box(4), se_cross(4),
-                      se_box(3), se_cross(3),
-                      se_box(2), se_cross(2),
+alternate_multi_se = [se_box(3), se_cross(2),
                       se_box(1), se_cross(1)]
 
 class multiresolution:
@@ -174,9 +171,21 @@ class multiresolution:
         for op in self.operators:
             op.add_training_example(srcimg, destimg)
 
-    def optimal_decision(self, pattern):
-        for operator in self.operators:
-            found = operator.freqtable.get(pattern)
-            if found:
-                return found
-        return False # Not found in any level. Gotta be really unlucky, mate
+    def pyramid_match(self, src, i, j):
+        """
+        The highest level containing a pattern matching to its se mask centered
+        at position (i,j) of the src image will respond with its optimal decision
+        """
+        for op in self.operators:
+            pattern = p_hash(op.slide_window(src, i, j))
+            if op.operator.has_key(pattern):
+                return op.operator[pattern]
+
+    def apply(self, src):
+        target = np.zeros_like(src, dtype=bool)
+        # img border corresponds to largest resolution border
+        top, bottom, left, rigth = self.operators[0].se.imgborders(src)
+        for i in range(top, bottom):
+            for j in range(left, rigth):
+                target[i,j] = self.pyramid_match(src, i, j)
+        return target

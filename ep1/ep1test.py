@@ -105,5 +105,21 @@ class TestEP(unittest.TestCase):
         b = np.array([[1,0,1],[0,2,2],[3,3,0],[4,4,4]])
         self.assertAlmostEquals(0.25, img_dist(a,b))
 
+    def test_init_multires(self):
+        m = multiresolution([self.mask_square, self.mask_horizontal], self.trainingdata)
+        self.assertEquals(p_hash(m.operators[0].se.mask), p_hash(self.mask_square))
+        self.assertEquals(p_hash(m.operators[1].se.mask), p_hash(self.mask_horizontal))
+        p33 = p_hash(self.img[0:3,0:3])
+        p13 = p_hash((self.img[0,0:3]))
+        self.assertTrue(m.operators[0].operator.has_key(p33))
+        self.assertFalse(m.operators[0].operator.has_key(p13))
+        self.assertTrue(m.operators[1].operator.has_key(p13))
+        self.assertFalse(m.operators[1].operator.has_key(p33))
+
+    def test_pyramid_match(self):
+        m = multiresolution([self.mask_square, self.mask_horizontal], self.trainingdata)
+        self.assertFalse(m.pyramid_match(self.img, 1,1))
+        self.assertTrue(m.pyramid_match(self.img, 2,2))
+
 if __name__ == '__main__':
     unittest.main()
