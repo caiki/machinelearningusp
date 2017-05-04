@@ -56,11 +56,8 @@ class structuring_element:
 
 class w_operator:
 
-    def __init__(self, se_mask=None, trainingdata=[]):
-        if se_mask is not None:
-            self.se = structuring_element(se_mask)
-        else:
-            self.se = None
+    def __init__(self, se_mask=se_box(1), trainingdata=[]):
+        self.se = structuring_element(se_mask)
         self.trainingdata = trainingdata
         self.freqtable = {}
         self.operator = []
