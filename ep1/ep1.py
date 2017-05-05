@@ -149,10 +149,7 @@ class w_operator:
         return self.error(self.trainingdata)
 
 
-default_multi_se = [se_box(i) for i in range(3,0,-1)]
-
-alternate_multi_se = [se_box(3), se_cross(2),
-                      se_box(1), se_cross(1)]
+default_multi_se = [se_box(i) for i in range(4,0,-1)]
 
 class multiresolution:
 
@@ -178,7 +175,7 @@ class multiresolution:
         """
         for op in self.operators:
             pattern = p_hash(op.slide_window(src, i, j))
-            if op.operator.has_key(pattern):
+            if op.freqtable.has_key(pattern):
                 return op.operator[pattern]
 
     def apply(self, src):
